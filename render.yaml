@@ -1,0 +1,47 @@
+services:
+  # 1. PostgREST (API Layer)
+  - type: web
+    name: insforge-postgrest
+    env: image
+    imageURL: postgrest/postgrest:latest
+    envGroups:
+      - insforge-secrets
+    envVars:
+      - key: PGRST_DB_SCHEMA
+        value: public
+      - key: PGRST_DB_ANON_ROLE
+        value: anon
+
+  # 2. InsForge Auth Server (Private Service)
+  - type: pserv
+    name: insforge-auth
+    env: image
+    imageURL: ghcr.io/insforge/auth:latest
+    envGroups:
+      - insforge-secrets
+
+  # 3. InsForge Storage API
+  - type: web
+    name: insforge-storage
+    env: image
+    imageURL: ghcr.io/insforge/storage:latest
+    envGroups:
+      - insforge-secrets
+    disk:
+      name: insforge-data
+      mountPath: /var/lib/storage
+      sizeGB: 10
+
+  # 4. InsForge MCP Server (Dashboard & Semantic Layer)
+  - type: web
+    name: insforge-mcp
+    env: image
+    imageURL: ghcr.io/insforge/app:latest
+    envGroups:
+      - insforge-secrets
+    envVars:
+      # Internal routing so the MCP server can talk to the other services natively
+      - key: POSTGREST_URL
+        value: http://insforge-postgrest:3000
+      - key: AUTH_URL
+        value: http://insforge-auth:3000
